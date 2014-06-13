@@ -2,7 +2,7 @@
 
 ## What is React + Services?
 
-React + Services is a thin dependency injection layer on React.js. It solves the issue of propagating data through your component structure by defining your components through a dependency manager that takes care of resolving dependencies without defining a global state for your application.
+React + Services is a thin dependency injection layer on React.js.
 
 ## Why services?
 
@@ -14,37 +14,6 @@ React + Services is a thin dependency injection layer on React.js. It solves the
 ## Installation
 
     npm install react-services
-
-## Defining a component
-
-React + Services requires you to define your components through its own definition function:
-
-    var defineComponent = require("react-services").defineComponent
-
-    Application = defineComponent({
-      render: function() {
-        return <h1>Hello World!</h1>
-      }
-    })
-
-## Subscribing to services
-
-Services are subscribed to by defining the `subscribe` object on the component.
-
-    var defineComponent = require("react-services").defineComponent
-
-    Application = defineComponent({
-      subscribe: {
-        name: "NameService#name"
-      },
-
-      render: function() {
-        return <h1>Hello {this.state.name}!</h1>
-      }
-    })
-
-When the `NameService` becomes available, the dependency manager will update the `Application` components state with `name`.
-
 
 ## Defining services
 
@@ -58,14 +27,22 @@ When the `NameService` becomes available, the dependency manager will update the
       };
     })
 
+## Using services
 
-## Service dependencies
+Define the services consumed by a component in the `subscribe` field:
 
-Services can depend on other services to produce the correct results.
+    var services = require("react-services")
 
-    var defineService = require("react-services").defineService
+    Application = services.defineComponent({
+      subscribe: {
+        name: "NameService#name"
+      },
+      render: function() {
+        return `<h1>Hello {this.state.name}</h1>`
+      }
+    })
 
-    NameService = defineService("NameService", function() {
+    Service = services.defineService("NameService", function() {
       return {
         name: function() {
           return "React + Services"
@@ -73,19 +50,9 @@ Services can depend on other services to produce the correct results.
       };
     })
 
-    GreeterService = defineService("GreeterService", function(services) {
-      return {
-        subscribe: {
-          name: "NameService#name"
-        },
-        greeting: function() {
-          return "Hello " + services.name + "!"
-        }
-      }
-    })
+## Service dependencies
 
-
-Any changes are automatically propagated to dependent services.
+Services can depend on other services to produce the correct results. Any changes are automatically propagated to dependent services.
 
     var rservices = require("react-services")
 

@@ -1,0 +1,27 @@
+{
+  "name": "react-services",
+  "version": "0.1.0",
+  "description": "Dependency injection and services layer for react.js",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArseAssassin/react-services.git"
+  },
+  "author": "Tuomas Kanerva",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ArseAssassin/react-services/issues"
+  },
+  "homepage": "https://github.com/ArseAssassin/react-services",
+  "dependencies": {
+    "envify": "^1.2.1",
+    "react": "^0.10.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.7.1",
+    "gulp": "^3.8.0",
+    "gulp-clean": "^0.3.0",
+    "gulp-coffee": "^2.0.1",
+    "gulp-mocha": "^0.4.1"
+  }
+}
