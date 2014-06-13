@@ -1,26 +1,26 @@
-var gulp    = require("gulp")
-var clean   = require("gulp-clean");
+var gulp        = require("gulp")
+var clean       = require("gulp-clean");
 
-var coffee  = require("gulp-coffee");
+var coffee      = require("gulp-coffee");
 
-var mocha   = require("gulp-mocha")
+var mocha       = require("gulp-mocha")
 
 paths = {
-  test: "./test/",
-  lib: "./lib/",
-  src: "./src/"
+  test:   "./test/",
+  lib:    "./lib/",
+  src:    "./src/"
 }
 
 gulp.task("default", ["build"])
 
 gulp.task("clean", function() {
   return gulp.src(paths.lib, {read: false})
-    .pipe(clean())
+    .pipe(clean({bare: true}))
 })
 
 gulp.task("build", ["clean"], function() {
   return gulp.src(paths.src + "*.coffee")
-    .pipe(coffee())
+    .pipe(coffee({bare: true}))
     .pipe(gulp.dest(paths.lib))
 })
 
