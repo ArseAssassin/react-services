@@ -2,7 +2,7 @@
   "name": "react-services",
   "version": "0.1.0",
   "description": "Dependency injection and services layer for react.js",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/ArseAssassin/react-services.git"
