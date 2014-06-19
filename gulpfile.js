@@ -5,10 +5,13 @@ var coffee      = require("gulp-coffee");
 
 var mocha       = require("gulp-mocha")
 
+var browserify  = require("gulp-browserify")
+
 paths = {
   test:   "./test/",
   lib:    "./lib/",
-  src:    "./src/"
+  src:    "./src/",
+  dist:   "./dist/"
 }
 
 gulp.task("default", ["build"])
@@ -27,7 +30,7 @@ gulp.task("build", ["clean"], function() {
 gulp.task("test", function() {
   require("coffee-script/register");
 
-  return gulp.src("test/*.test.coffee")
+  return gulp.src("test/**/*.test.coffee")
     .pipe(mocha({
       reporters: "list"
     }))
@@ -35,4 +38,10 @@ gulp.task("test", function() {
 
 gulp.task("watch:test", function() {
   gulp.watch([paths.test + "**/*", paths.src + "**/*"], ["test"])
+})
+
+gulp.task("bundle", ["build"], function() {
+  return gulp.src("./lib/index.js")
+    .pipe(browserify())
+    .pipe(gulp.dest(paths.dist))
 })

@@ -49,4 +49,7 @@ class DependencyManager
     @subscribers = {}
     @data = {}
 
+  getValue: (name) ->
+    @data[name]()
+
 module.exports = DependencyManager

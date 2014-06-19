@@ -42,3 +42,9 @@ describe "react-services", ->
 
       assert.equal propagatedValue, "hello"
 
+  describe "getting provisions", ->
+    it "should get up to date provision value", ->
+      index.defineService "TestService", ->
+        test: -> "hello"
+
+      assert.equal index.getValue("TestService#test"), "hello"

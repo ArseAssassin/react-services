@@ -49,3 +49,9 @@ module.exports.defineComponent = (component) ->
 
 module.exports.clear = ->
   dependencyManager.clear()
+
+
+module.exports.getValue = (name) ->
+  dependencyManager.getValue name
+
+module.exports.React = React
