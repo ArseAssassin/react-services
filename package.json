@@ -14,8 +14,6 @@
   },
   "homepage": "https://github.com/ArseAssassin/react-services",
   "dependencies": {
-    "envify": "^1.2.1",
-    "react": "^0.10.0"
   },
   "devDependencies": {
     "coffee-script": "^1.7.1",

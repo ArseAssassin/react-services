@@ -22,7 +22,7 @@ gulp.task("clean", function() {
 })
 
 gulp.task("build", ["clean"], function() {
-  return gulp.src(paths.src + "*.coffee")
+  return gulp.src(paths.src + "**/*.coffee")
     .pipe(coffee({bare: true}))
     .pipe(gulp.dest(paths.lib))
 })

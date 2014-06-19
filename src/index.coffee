@@ -1,5 +1,3 @@
-React = require "React"
-
 dependencyManager = new (require "./DependencyManager")
 
 merge = (a, b) ->
@@ -44,7 +42,7 @@ module.exports.defineComponent = (component) ->
     dependencyManager.removeSubscriber this
     oldUnmount.call(this)
 
-  React.createClass component
+  getReact().createClass component
 
 
 module.exports.clear = ->
@@ -53,5 +51,3 @@ module.exports.clear = ->
 
 module.exports.getValue = (name) ->
   dependencyManager.getValue name
-
-module.exports.React = React

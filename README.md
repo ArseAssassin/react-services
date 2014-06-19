@@ -15,6 +15,14 @@ React + Services is a thin dependency injection layer on React.js.
 
     npm install react-services
 
+## Initialization
+
+In order not to package multiple versions of React with your application, `react-services` expects `getReact` function to be defined.
+
+`function getReact() {
+  return React;
+}`
+
 ## Defining services
 
     var defineService = require("react-services").defineService
