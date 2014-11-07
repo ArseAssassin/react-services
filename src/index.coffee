@@ -1,53 +1,53 @@
-dependencyManager = new (require "./DependencyManager")
+DependencyManager = require "./DependencyManager"
+merge = require("./helpers").merge
 
-merge = (a, b) ->
-  x = {}
-  for key, value of a
-    x[key] = value
-  for key, value of b
-    x[key] = value
+module.exports = ->
+  dependencyManager = new DependencyManager
 
-  x
+  defineService: (serviceName, constructor) ->
+    currentState = {}
+    newService = new constructor(currentState)
 
-module.exports.defineService = (serviceName, constructor) ->
-  currentState = {}
-  newService = new constructor(currentState)
+    updateService = (name) ->
+      if !name
+        dependencyManager.updateProvider serviceName, newService
+      else
+        dependencyManager.updateField "#{serviceName}##{name}", newService[name]
 
-  updateService = (name) ->
-    if !name
-      dependencyManager.updateProvider serviceName, newService
-    else
-      dependencyManager.updateField "#{serviceName}##{name}", newService[name]
+    dependencyManager.addSubscriber 
+      setServices: (newState) ->
+        currentState = merge currentState, newState
+        newService = constructor(currentState)
+        updateService()
 
-  dependencyManager.addSubscriber 
-    setState: (newState) ->
-      currentState = merge currentState, newState
-      newService = constructor(currentState)
-      updateService()
+      update: ->
+        updateService()
 
-    subscribe: newService.subscribe
+      subscribe: newService.subscribe
 
-  updateService()
+    updateService()
 
-  update: updateService
-
-module.exports.defineComponent = (component) ->
-  oldMount    = component.componentWillMount    || (->)
-  oldUnmount  = component.componentWillUnmount  || (->)
-
-  component.componentWillMount = -> 
-    dependencyManager.addSubscriber this
-    oldMount.call(this)
-  component.componentWillUnmount = -> 
-    dependencyManager.removeSubscriber this
-    oldUnmount.call(this)
-
-  getReact().createClass component
+    update: updateService
 
 
-module.exports.clear = ->
-  dependencyManager.clear()
+  useServices: ->
+    setServices: (services) ->
+      @services = merge this.services, services
+
+    update: ->
+      @setState
+        services: @services
+
+    componentWillMount: -> 
+      dependencyManager.addSubscriber this
+
+    componentWillUnmount: -> 
+      dependencyManager.removeSubscriber this
 
 
-module.exports.getValue = (name) ->
-  dependencyManager.getValue name
+  clear: ->
+    dependencyManager.clear()
+
+
+  getValue: (name) ->
+    dependencyManager.getValue name

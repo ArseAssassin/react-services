@@ -5,7 +5,6 @@ var coffee      = require("gulp-coffee");
 
 var mocha       = require("gulp-mocha")
 
-var browserify  = require("gulp-browserify")
 
 paths = {
   test:   "./test/",
@@ -41,6 +40,8 @@ gulp.task("watch:test", function() {
 })
 
 gulp.task("bundle", ["build"], function() {
+  var browserify  = require("gulp-browserify")
+  
   return gulp.src("./lib/index.js")
     .pipe(browserify())
     .pipe(gulp.dest(paths.dist))

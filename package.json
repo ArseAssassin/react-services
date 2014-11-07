@@ -1,6 +1,6 @@
 {
   "name": "react-services",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Dependency injection and services layer for react.js",
   "main": "lib/index.js",
   "repository": {

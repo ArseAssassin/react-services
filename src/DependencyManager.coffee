@@ -1,3 +1,5 @@
+merge = require("./helpers").merge
+
 class DependencyManager
   constructor: () ->
     @subscribers = {}
@@ -10,7 +12,8 @@ class DependencyManager
       newData = {}
       newData[subscriberData.targetField] = value(subscriberData.subscriber)
 
-      subscriberData.subscriber.setState newData
+      subscriberData.subscriber.setServices newData
+      subscriberData.subscriber.update()
 
   getSubscribersForField: (fieldName) ->
     @subscribers[fieldName] || []
@@ -38,7 +41,7 @@ class DependencyManager
 
         @subscribers[field] = currentSubscribers
 
-      subscriber.setState(existingData)
+      subscriber.setServices existingData
 
   updateProvider: (name, provider) ->
     for key, value of provider
