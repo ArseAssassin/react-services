@@ -1,58 +1,33 @@
-merge = require("./helpers").merge
+Core = require "./Core"
+Signals = require "./Signals"
 
-class DependencyManager
-  constructor: () ->
-    @subscribers = {}
-    @data = {}
+module.exports = 
+  create: ->
+    services = 
+      Core: Core.create()
 
-  updateField: (fieldName, value) ->
-    @data[fieldName] = value
+    new ->
+      @resolve = (dependencies) ->
+        @iter = (dependencies) ->
+          result = {}
+          for k, v of dependencies
+            result[k] = v.resolve(@resolve(v.dependencies(@services())))
+          result
 
-    for subscriberData in @getSubscribersForField(fieldName)
-      newData = {}
-      newData[subscriberData.targetField] = value(subscriberData.subscriber)
+        try
+          @iter(dependencies)
+        catch e
+          switch e
+            when Signals.UNAVAILABLE then e
+            when Signals.WAITING then e
+            else throw e
 
-      subscriberData.subscriber.setServices newData
-      subscriberData.subscriber.update()
+      @addService = (name, provisions) ->
+        services[name] = provisions
 
-  getSubscribersForField: (fieldName) ->
-    @subscribers[fieldName] || []
+      @services = -> services
 
-  removeSubscriber: (subscriber) ->
-    for own key, list of @subscribers
-      @subscribers[key] = list.filter (subscriberData) -> subscriberData.subscriber != subscriber
+      @
 
-  addSubscriber: (subscriber) ->
-    if subscriber.subscribe
-      subscribedFields = subscriber.subscribe
 
-      existingData = {}
 
-      for own targetField, field of subscribedFields
-        currentSubscribers = @getSubscribersForField(field)
-
-        if @data[field]
-          existingData[targetField] = @data[field](subscriber)
-
-        currentSubscribers.push(
-          subscriber: subscriber,
-          targetField: targetField
-        )
-
-        @subscribers[field] = currentSubscribers
-
-      subscriber.setServices existingData
-
-  updateProvider: (name, provider) ->
-    for key, value of provider
-      if key != "services"
-        @updateField name + "#" + key, value
-
-  clear: ->
-    @subscribers = {}
-    @data = {}
-
-  getValue: (name) ->
-    @data[name]()
-
-module.exports = DependencyManager
