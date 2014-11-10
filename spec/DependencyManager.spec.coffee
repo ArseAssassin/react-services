@@ -1,13 +1,12 @@
 DependencyManager = require "../src/DependencyManager"
 Provision = require "../src/Provision"
-Signals = require "../src/Signals"
+Signal = require "../src/Signal"
 
 demand = require "must"
 
 describe "DependencyManager", ->
   beforeEach ->
     @dm = DependencyManager.create()
-
 
   it "should add a service", ->
     @dm.addService "TestService", {}
@@ -75,33 +74,63 @@ describe "DependencyManager", ->
 
   it "should cancel on unavailable dependencies", ->
     @dm.addService "Unavailable", 
-      provision: Provision.create null, -> throw Signals.UNAVAILABLE
+      provision: Provision.create null, -> throw Signal.UNAVAILABLE
 
     @dm.resolve(
       provision: @dm.services().Unavailable.provision()
-    ).must.eql(Signals.UNAVAILABLE)
+    ).must.eql(Signal.UNAVAILABLE)
 
 
   it "should cancel on waiting dependencies", ->
     @dm.addService "Unavailable", 
-      provision: Provision.create null, -> throw Signals.WAITING
+      provision: Provision.create null, -> throw Signal.WAITING
 
     @dm.resolve(
       provision: @dm.services().Unavailable.provision()
-    ).must.eql(Signals.WAITING)
+    ).must.eql(Signal.WAITING)
 
 
-  it "should resolve signals", ->
-    results = @dm.resolve(
-      publish: @dm.services().Core.publish("test")
-      message: @dm.services().Core.getMessage("test", "default")
-    )
+  describe "Signals", ->
+    it "should return the default value of a signal if not initialized", ->
+      @dm.addService "Signal", 
+        signal: Signal.create "constant"
 
-    results.message.must.eql("default")
-    results.publish("testies")
+      @dm.resolve(
+        signal: @dm.services().Signal.signal()
+      ).signal.must.eql("constant")
 
-    results = @dm.resolve(
-      message: @dm.services().Core.getMessage("test")
-    )
-    results.message.must.eql("testies")
+    it "should use events to fold signal value over time", ->
+      @dm.addService "Service",
+        signal: Signal.create 0, ["test"], (x) -> x + 1
+
+      results = @dm.resolve(
+        signal: @dm.services().Service.signal()
+        publish: @dm.services().Core.publish("test")
+      )
+
+      results.signal.must.eql(0)
+      results.publish("something")
+
+      @dm.update()
+
+      @dm.resolve(
+        signal: @dm.services().Service.signal()
+      ).signal.must.eql(1)
+
+    it "should call update for every matched events", ->
+      @dm.addService "Service",
+        signal: Signal.create 0, ["test"], (x) -> x + 1
+
+      results = @dm.resolve(
+        publish: @dm.services().Core.publish("test")
+      )
+
+      results.publish(1)
+      results.publish(2)
+
+      @dm.update()
+
+      @dm.resolve(
+        signal: @dm.services().Service.signal()
+      ).signal.must.eql(2)
 

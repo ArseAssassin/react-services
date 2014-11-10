@@ -10,9 +10,3 @@ module.exports =
       resolve: (deps) ->
         result.apply(null, [deps].concat args)
 
-  createSignal: (name) ->
-    ->
-      dependencies: (services) -> 
-        message: services.Core.getMessage(name)
-      resolve: (deps) ->
-        deps.message

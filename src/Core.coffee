@@ -1,10 +1,14 @@
 Provision = require "./Provision"
-Signals = require "./Signals"
+Signal = require "./Signal"
+Queue = require "./Queue"
 
 module.exports =
   create: ->
-    messages = {}
-    getMessage: Provision.create null, (deps, name, defaultValue) -> 
-      messages[name] || defaultValue
-    publish: Provision.create null, (deps, name) -> (value) -> 
-      messages[name] = value
+    queue = Queue.create()
+
+    flushEvents: ->
+      queue.flush()
+
+    getService: ->
+      publish: Provision.create null, 
+        (deps, name) -> (payload) -> queue.publish({type: name, payload: payload})
