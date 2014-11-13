@@ -2,135 +2,152 @@ DependencyManager = require "../src/DependencyManager"
 Provision = require "../src/Provision"
 Signal = require "../src/Signal"
 
-demand = require "must"
+q = require "q"
 
 describe "DependencyManager", ->
   beforeEach ->
     @dm = DependencyManager.create()
 
   it "should add a service", ->
-    @dm.addService "TestService", {}
+    @dm.defineService "TestService", {}
 
     @dm.services().TestService.must.eql({})
 
 
   it "should resolve a dependency", ->
-    @dm.addService "NameService",
-      name: Provision.create null, -> "test"
+    @dm.defineService "NameService",
+      name: 
+        getValue: -> "test"
 
-    resolution = @dm.resolve(
+    @dm.resolve(
       name: @dm.services().NameService.name()
-    )
-
-    resolution.name.must.eql("test")
+    ).name.must.eql("test")
 
 
   it "should resolve a dependency with arguments", ->
-    @dm.addService "GreeterService",
-      name: Provision.create null, (deps, name) -> "Hello #{name}!"
+    @dm.defineService "GreeterService",
+      name: 
+        getValue: (deps, name) -> "Hello #{name}!"
 
-    resolution = @dm.resolve(
+    @dm.resolve(
       name: @dm.services().GreeterService.name("tester")
-    )
-
-    resolution.name.must.eql("Hello tester!")
+    ).name.must.eql("Hello tester!")
 
 
   it "should resolve a dependency with dependencies", ->
-    @dm.addService "NameService",
-      username: Provision.create null, -> "tester"
+    @dm.defineService "NameService",
+      username: 
+        getValue: -> "tester"
 
-    @dm.addService "GreeterService",
-      greeting: Provision.create (
-        (services) -> 
+    @dm.defineService "GreeterService",
+      greeting: 
+        getDependencies: (services) ->
           username: services.NameService.username()
-        ),
-        (deps) -> "Hello #{deps.username}!"
+        getValue: (deps) -> "Hello #{deps.username}!"
 
-    resolution = @dm.resolve(
+    @dm.resolve(
       greeting: @dm.services().GreeterService.greeting()
-    )
-
-    resolution.greeting.must.eql("Hello tester!")
+    ).greeting.must.eql("Hello tester!")
 
 
   it "should resolve a dependency with parameters", ->
-    @dm.addService "GreeterService",
-      greeting: Provision.create (
-          (services, name) ->
-            name: services.YellerService.yell(name)
-        ),
-        (deps) -> "Hello #{deps.name}!"
+    @dm.defineService "GreeterService",
+      greeting: 
+        getDependencies: (services, name) ->
+          name: services.YellerService.yell(name)
+        getValue: (deps) -> "Hello #{deps.name}!"
 
-    @dm.addService "YellerService",
-      yell: Provision.create null, (deps, name) -> name.toUpperCase()
+    @dm.defineService "YellerService",
+      yell: 
+        getValue: (deps, name) -> name.toUpperCase()
 
-    resolution = @dm.resolve(
+    @dm.resolve(
       greeting: @dm.services().GreeterService.greeting("tester")
-    )
-
-    resolution.greeting.must.eql("Hello TESTER!")
-
-
-  it "should cancel on unavailable dependencies", ->
-    @dm.addService "Unavailable", 
-      provision: Provision.create null, -> throw Signal.UNAVAILABLE
-
-    @dm.resolve(
-      provision: @dm.services().Unavailable.provision()
-    ).must.eql(Signal.UNAVAILABLE)
-
-
-  it "should cancel on waiting dependencies", ->
-    @dm.addService "Unavailable", 
-      provision: Provision.create null, -> throw Signal.WAITING
-
-    @dm.resolve(
-      provision: @dm.services().Unavailable.provision()
-    ).must.eql(Signal.WAITING)
+    ).greeting.must.eql("Hello TESTER!")
 
 
   describe "Signals", ->
     it "should return the default value of a signal if not initialized", ->
-      @dm.addService "Signal", 
-        signal: Signal.create "constant"
+      @dm.defineService "Signal", 
+        signal: 
+          getDependencies: (services) ->
+            signal: services.createSignal
+              initialValue: -> "constant"
+          getValue: (deps) -> deps.signal
 
       @dm.resolve(
         signal: @dm.services().Signal.signal()
       ).signal.must.eql("constant")
 
+
     it "should use events to fold signal value over time", ->
-      @dm.addService "Service",
-        signal: Signal.create 0, ["test"], (x) -> x + 1
+      @dm.defineService "Service",
+        signal: 
+          getDependencies: (services) ->
+            signal: services.createSignal
+              initialValue: -> 0
+              handlers:
+                test: 
+                  getValue: -> @value + 1
 
-      results = @dm.resolve(
+          getValue: (deps) -> deps.signal
+
+      @dm.resolve(
         signal: @dm.services().Service.signal()
-        publish: @dm.services().Core.publish("test")
-      )
+      ).signal.must.eql(0)
 
-      results.signal.must.eql(0)
-      results.publish("something")
-
-      @dm.update()
+      @dm.update([{type: "test"}])
 
       @dm.resolve(
         signal: @dm.services().Service.signal()
       ).signal.must.eql(1)
 
-    it "should call update for every matched events", ->
-      @dm.addService "Service",
-        signal: Signal.create 0, ["test"], (x) -> x + 1
 
-      results = @dm.resolve(
-        publish: @dm.services().Core.publish("test")
-      )
-
-      results.publish(1)
-      results.publish(2)
-
-      @dm.update()
+    it "should create new signal when getDependencies is called with different args", ->
+      @dm.defineService "Service",
+        signal:
+          getDependencies: (services, value) ->
+            signal: services.createSignal
+              initialValue: -> value
+          getValue: (deps) -> deps.signal
 
       @dm.resolve(
-        signal: @dm.services().Service.signal()
-      ).signal.must.eql(2)
+        signal: @dm.services().Service.signal(0)
+      ).signal.must.eql(0)
 
+      @dm.resolve(
+        signal: @dm.services().Service.signal(1)
+      ).signal.must.eql(1)
+
+      
+    it "should update a provision that depends on a service that depends on a signal", ->
+      @dm.defineService "Service",
+        signal:
+          getDependencies: (services) ->
+            signal: services.createSignal
+              initialValue: -> 0
+              handlers:
+                test: 
+                  getValue: -> @value + 1
+
+
+          getValue: (deps) -> deps.signal
+
+        double:
+          getDependencies: (services) ->
+            value: services.Service.signal()
+          getValue: (deps) -> deps.value * 2
+
+      dm = @dm
+
+      @dm.resolve(
+        signal: @dm.services().Service.double()
+      ).signal.must.eql 0
+
+      dm.update [
+        type: "test"
+      ]
+
+      dm.resolve(
+        signal: dm.services().Service.double()
+      ).signal.must.eql 2

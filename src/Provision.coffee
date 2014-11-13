@@ -1,12 +1,28 @@
+q = require "q"
+
+lastProvisionId = 0
+createId = ->
+  lastProvisionId++
+
 module.exports =
-  create: (dependencies, result) ->
+  create: (data) ->
+    data ||= {}
+    
     -> 
       args = Array.prototype.slice.call(arguments)
+
+      id: (callStack="") ->
+        if data.provisionId == undefined
+          data.provisionId = createId()
+        callStack + data.provisionId + JSON.stringify(args)
+
       dependencies: (services) -> 
-        if dependencies
-          dependencies.apply null, [services].concat(args)
+        result = if data.getDependencies
+          data.getDependencies.apply null, [services].concat(args)
         else
           {}
+
+
       resolve: (deps) ->
-        result.apply(null, [deps].concat args)
+        data.getValue.apply(null, [deps].concat args)
 

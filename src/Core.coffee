@@ -10,5 +10,7 @@ module.exports =
       queue.flush()
 
     getService: ->
-      publish: Provision.create null, 
-        (deps, name) -> (payload) -> queue.publish({type: name, payload: payload})
+      publish: 
+        getValue: (services, name) -> (payload) -> 
+          queue.publish({type: name, payload: payload})
+

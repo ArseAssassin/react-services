@@ -1,42 +1,130 @@
 Core = require "./Core"
 Signal = require "./Signal"
+Provision = require "./Provision"
+q = require "q"
+
+_ = require "underscore-contrib"
 
 module.exports = 
   create: ->
-    toUpdate = []
+    services = {}
     core = Core.create()
-    services = 
-      Core: core.getService()
+
+    contexts = {}
+    cache = {}
+
+    dirty = true
 
     new ->
+      setDirty = (id) ->
+        dirty = true
+        cache = {}
+
+
       @resolve = (dependencies) ->
-        @iter = (dependencies) ->
+        memoize = (id, value) ->
+          cache[id] = value
+
+        lookup = (id) ->
+          cache[id]
+
+        iter = ((dependencies, callStack) ->
           result = {}
-          for k, v of dependencies
-            result[k] = v.resolve(@resolve(v.dependencies(@services())))
+          for name, context of dependencies
+            id = context.id("")
+            deps = context.dependencies(@services(id))
+            result[name] = context.resolve(iter(deps, callStack.concat(id)))
           result
+        ).bind @
 
-        try
-          @iter(dependencies)
-        catch e
-          switch e
-            when Signal.UNAVAILABLE then e
-            when Signal.WAITING then e
-            else throw e
+        iter(dependencies, [])
 
-      @addService = (name, provisions) ->
-        services[name] = provisions
-        
+      # @resolve = (dependencies) ->
+      #   solveDependencyGraph = ((dependencies, callStack=[]) ->
+      #     result = {}
+
+      #     for name, context of dependencies
+      #       id = context.id(callStack.join("."))
+      #       deps = context.dependencies(@services(id), (context.args || []))
+      #       result[name] = [context, solveDependencyGraph(deps, callStack.concat(id))]
+
+      #     result
+      #   ).bind @
+
+      #   graph = solveDependencyGraph dependencies
+
+      #   solveResults = (graph) ->
+      #     result = {}
+
+      #     promises = []
+
+      #     for name, [context, dependencies] of graph
+      #       value = solveResults(dependencies)
+      #       if value.then
+      #         promises.push value
+      #       else
+      #         value = context.resolve(value)
+
+      #       result[name] = value
+
+      #     if promises.length > 0
+      #       q.allSettled(promises).then ->
+      #         for name, value of result
+      #           if value.then
+      #             result[name] = context.resolve(value.inspect().value)
+
+      #         result
+      #     else
+      #       result
+
+      #   resolution = solveResults graph
+
+      #   makePromise = (value) ->
+      #     then: (f) ->
+      #       f(value)
+
+      #   if !resolution.then
+      #     makePromise resolution
+      #   else
+      #     resolution
+
+      @defineService = (name, provisions) ->
+        results = {}
+
         for k, v of provisions
-          if v.update
-            toUpdate.push(v.update)
+          results[k] = Provision.create v
 
-      @services = -> services
+        services[name] = results
 
-      @update = ->
-        events = core.flushEvents()
-        for update in toUpdate
-          update(events)
+      @services = (contextId) -> 
+        _.merge services,
+          createSignal: (definition) ->
+            contexts[contextId] ||= Signal.create(definition, contextId, setDirty.bind(null, contextId))
+            contexts[contextId]
+
+      @flushEvents = -> core.flushEvents()
+
+      @dirty = -> dirty
+      @setClean = -> dirty = false
+
+      @update = (events) ->
+        # handleEvent = ((signal, handler, event) ->
+        #   promises.push @resolve(handler.dependencies(@services(signal.contextId), event)).then (deps) ->
+        #     handler.update(deps, event)
+        # ).bind @
+
+        for k, signal of contexts
+          for event in events
+            handler = signal.getHandler(event)
+
+            if handler
+              handler.update(@resolve(handler.dependencies(@services(signal.contextId), event)))
+
+        # q.allSettled(promises).then (x) ->
+        #   events.length > 0 || dirty == true
+
+
+      @defineService "Core", core.getService()
 
       @
 
