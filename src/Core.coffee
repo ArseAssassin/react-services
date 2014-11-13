@@ -10,7 +10,6 @@ module.exports =
       queue.flush()
 
     getService: ->
-      publish: 
-        getValue: (services, name) -> (payload) -> 
-          queue.publish({type: name, payload: payload})
+      publish: (name) -> (payload) -> 
+        queue.publish({type: name, payload: payload})
 

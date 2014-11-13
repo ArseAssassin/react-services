@@ -12,7 +12,7 @@ module.exports =
 
     getMixin: ->
       updateDependencies: ->
-        container.forceUpdate()
+        container.setDirty(@interestingSignals)
 
       componentWillMount: ->
         container.addSubscriber @

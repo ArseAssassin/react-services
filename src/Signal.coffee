@@ -1,42 +1,52 @@
 helpers = require "./helpers"
 
+lastId = 0
+
 module.exports =
-  create: (definition, contextId, setDirty) -> 
-    setDirty ||= ->
-    definition.handlers ||= {}
+  create: (definition) -> 
+    id = (lastId++).toString()
 
-    value = undefined
+    value = null
 
-    setValue = (x) ->
-      if x == value
-        return
+    values = {}
 
-      if x.promise
-        x.promise.then (x) ->
-          setValue x
+    setValue = (key, value, setDirty) ->
+      signalInstanceId = id + key
 
-        if x.now != undefined
-          setValue x.now
+      setDirty ||= ->
+
+      if value.promise
+        if value.now
+          values[key] = value.now
+          setDirty(signalInstanceId)
+
+        value.promise.then (x) ->
+          values[key] = x
+          setDirty(signalInstanceId)
+
       else
-        value = x
-        setDirty()
+        values[key] = value
+        setDirty(signalInstanceId)
 
-      x
+    bind: (context) ->
+      -> 
+        args = Array.prototype.slice.call(arguments)
+        hash = JSON.stringify args
 
-    setValue definition.initialValue()
+        if values[hash] == undefined
+          setValue hash, definition.initialValue.apply(deps: context.deps, args), context.setDirty
 
-    id: (name) -> name
-    contextId: contextId
-    dependencies: -> {}
-    resolve: -> 
-      value
-    getHandler: (event) ->
+        context.markAsInteresting(id + hash)
+
+        values[hash]
+
+    handle: (event, activeSignals) ->
       handler = definition.handlers[event.type]
-
-      context = {value: value}
-
       if handler
-        dependencies: (handler.getDependencies || -> {}).bind context
-        update: (deps) ->
-          setValue handler.getValue.call context, deps, event
-          
+        for k, v of values
+          signalInstanceId = id + k
+
+          if !activeSignals || activeSignals.indexOf(signalInstanceId) > -1
+            setValue k, handler.call({deps: @deps, value: v}, event), @setDirty
+
+    

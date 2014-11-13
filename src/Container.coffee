@@ -1,13 +1,18 @@
 DependencyManager = require "./DependencyManager"
 helpers = require "./helpers"
+_ = require "underscore-contrib"
 
 module.exports =
   create: ->
     subscribers = []
 
-    dirty = true
-
     dependencyManager = DependencyManager.create()
+
+    dirty = []
+    activeSignals = []
+
+    @setDirty = (signals) -> 
+      dirty = dirty.concat signals
 
     @defineService = (name, service) ->
       dependencyManager.defineService name, service
@@ -17,25 +22,34 @@ module.exports =
       @_update(subscriber)
 
     @removeSubscriber = (subscriber) ->
+      resetSignals(subscriber)
       subscribers.splice(subscribers.indexOf(subscriber), 1)
 
-    @_update = (subscriber) ->
-      subscriber.setDependencies dependencyManager.resolve(subscriber.getDependencies(dependencyManager.services(subscriber, subscriber.id())))
+    resetSignals = (subscriber) ->
+      signals = subscriber.interestingSignals || []
+      while signals.length > 0
+        signal = signals.pop()
+        activeSignals.splice(activeSignals.indexOf(signal), 1)
 
-    @forceUpdate = -> dirty = true
+      subscriber.interestingSignals = signals
+
+    @_update = (subscriber) ->
+      resetSignals(subscriber)
+      subscriber.setDependencies subscriber.getDependencies(
+        dependencyManager.services @setDirty, (x) ->
+          subscriber.interestingSignals.push x
+      )
+
+      activeSignals = activeSignals.concat subscriber.interestingSignals
 
     @update = ->
-      events = dependencyManager.flushEvents()
-      if events.length > 0 
-        dependencyManager.update(events)
+      dependencyManager.update @setDirty, activeSignals 
 
-      if dirty || dependencyManager.dirty()
-        for subscriber in subscribers
+      for subscriber in subscribers
+        if _.some(subscriber.interestingSignals, (x) -> dirty.indexOf(x) > -1)
           @_update(subscriber)
-
-        dependencyManager.setClean()
-
-      dirty = false
+          
+      dirty = []
 
 
     @
