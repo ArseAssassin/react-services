@@ -3,6 +3,7 @@ q = require "q"
 
 defaultContext = 
   markAsInteresting: ->
+  setDirty: ->
   deps: {}
 
 describe "Signal", ->
@@ -15,6 +16,7 @@ describe "Signal", ->
     s.bind(defaultContext)().must.eql 0
 
     s.handle.call(defaultContext, {type: "test"})
+    s.getSignals().map (x) -> x.consumeEvents.call(defaultContext)
 
     s.bind(defaultContext)().must.eql 1
 
@@ -27,13 +29,14 @@ describe "Signal", ->
         test: -> 
           deferred = q.defer()
 
-          promise: deferred.promise.then (x) ->
+          later: deferred.promise.then (x) ->
             x + 1
 
 
     s.bind(defaultContext)().must.eql 0
 
     s.handle.call(defaultContext, type: "test")
+    s.getSignals().map (x) -> x.consumeEvents.call(defaultContext)
 
     s.bind(defaultContext)().must.eql 0
 
@@ -51,13 +54,14 @@ describe "Signal", ->
       handlers:
         test: (x) -> 
           d.resolve(5)
-          promise: d.promise
           now: @value + 1
+          later: d.promise
             
 
     s.bind(defaultContext)().must.eql 0
 
     s.handle.call(defaultContext, type: "test")
+    s.getSignals().map (x) -> x.consumeEvents.call(defaultContext)
 
     s.bind(defaultContext)().must.eql 1
 
@@ -72,14 +76,17 @@ describe "Signal", ->
       handlers:
         test: (x) -> 
           d.resolve(5)
-          promise: d.promise
           now: @value + 1
+          later: d.promise
             
     i = 0
 
+    context = {deps: {}, setDirty: (-> i = 1)}
+
     s.bind(defaultContext)()
 
-    s.handle.call({deps: {}, setDirty: (-> i = 1)}, {type: "test"})
+    s.handle.call(context, {type: "test"})
+    s.getSignals().map (x) -> x.consumeEvents.call(context)
 
     d.promise.then (x) ->
       i.must.eql 1

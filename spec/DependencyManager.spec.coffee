@@ -55,7 +55,7 @@ describe "DependencyManager", ->
         signal: Signal.create
           initialValue: -> "constant"
 
-      @dm.services().Signal.signal().must.eql("constant")
+      @dm.services(->).Signal.signal().must.eql("constant")
 
 
     it "should use events to fold signal value over time", ->
@@ -65,10 +65,10 @@ describe "DependencyManager", ->
           handlers: 
             test: -> @value + 1
 
-      @dm.services().Service.signal().must.eql(0)
+      @dm.services(->).Service.signal().must.eql(0)
       @dm.services().Core.publish("test")()
 
-      @dm.update()
+      @dm.update((->), -> true)
 
       @dm.services().Service.signal().must.eql(1)
 
@@ -78,9 +78,9 @@ describe "DependencyManager", ->
         signal: Signal.create
           initialValue: (value) -> value
 
-      @dm.services().Service.signal(0).must.eql(0)
+      @dm.services(->).Service.signal(0).must.eql(0)
 
-      @dm.services().Service.signal(1).must.eql(1)
+      @dm.services(->).Service.signal(1).must.eql(1)
 
       
     it "should update a provision that depends on a service that depends on a signal", ->
@@ -95,8 +95,8 @@ describe "DependencyManager", ->
 
       dm = @dm
 
-      @dm.services().Service.double().must.eql 0
-      @dm.services().Core.publish("test")()
-      dm.update() 
+      @dm.services(->).Service.double().must.eql 0
+      @dm.services(->).Core.publish("test")()
+      dm.update((->), -> true) 
 
       dm.services().Service.double().must.eql 2

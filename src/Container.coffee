@@ -38,17 +38,16 @@ module.exports =
       subscriber.setDependencies subscriber.getDependencies(
         dependencyManager.services @setDirty, (x) ->
           subscriber.interestingSignals.push x
+          activeSignals.push x
       )
 
-      activeSignals = activeSignals.concat subscriber.interestingSignals
-
     @update = ->
-      dependencyManager.update @setDirty, activeSignals 
+      dependencyManager.update @setDirty, ((x) -> activeSignals.indexOf(x) > -1)
 
       for subscriber in subscribers
         if _.some(subscriber.interestingSignals, (x) -> dirty.indexOf(x) > -1)
           @_update(subscriber)
-          
+
       dirty = []
 
 

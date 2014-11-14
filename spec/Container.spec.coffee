@@ -37,13 +37,9 @@ describe "Container", ->
         subscriber.deps = deps
 
     @container.addSubscriber(subscriber)
-
     subscriber.deps.signal.must.eql(0)
-
     subscriber.deps.publish("something")
-    
     @container.update()
-
     subscriber.deps.signal.must.eql(1)
 
   it "should mark interesting signals in the call stack", ->
