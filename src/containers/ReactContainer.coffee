@@ -12,15 +12,17 @@ module.exports =
 
     getMixin: ->
       updateDependencies: ->
-        container.setDirty(@interestingSignals)
+        @dirty = true
 
       componentWillMount: ->
+        @dirty = false
         container.addSubscriber @
 
       componentWillUnmount: ->
         container.removeSubscriber @
 
       setDependencies: (deps) ->
+        @dirty = false
         @dependencies = deps
         @setState
           dependencies: deps

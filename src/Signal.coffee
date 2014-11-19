@@ -15,6 +15,8 @@ module.exports =
 
     events = []
 
+    definition.handlers ||= {}
+
     bind: (context) ->
       -> 
         args = Array.prototype.slice.call(arguments)
@@ -24,10 +26,6 @@ module.exports =
           sig = SignalInstance.create(hash, definition, args)
           values[hash] = sig
           sig.initialize.call({deps: context.deps, setDirty: context.setDirty})
-          # for event in events
-          #   sig.handle(event)
-
-          # sig.consumeEvents.call({deps: context.deps})
 
         context.markAsInteresting(hash)
 
@@ -51,10 +49,9 @@ SignalInstance =
     events = Queue.create()
 
     setValue = (value) ->
-      if value.later
+      if value != undefined && value != null && value.later
         if value.now != undefined
-          currentValue = value.now
-          @setDirty(id)
+          setValue.call(@, value.now)
 
         value.later.then ((x) ->
           currentValue = x
@@ -62,8 +59,9 @@ SignalInstance =
         ).bind @
 
       else
-        currentValue = value
-        @setDirty(id)
+        if value != currentValue
+          currentValue = value
+          @setDirty(id)
 
     id: id
 
