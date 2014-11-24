@@ -45,7 +45,7 @@ module.exports =
       dependencyManager.update @setDirty, ((x) -> activeSignals.indexOf(x) > -1)
 
       for subscriber in subscribers
-        if _.some(subscriber.interestingSignals, (x) -> subscriber.dirty || dirty.indexOf(x) > -1)
+        if subscriber.dirty || _.some(subscriber.interestingSignals, (x) -> subscriber.dirty || dirty.indexOf(x) > -1)
           @_update(subscriber)
 
       dirty = []
