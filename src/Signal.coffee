@@ -53,10 +53,7 @@ SignalInstance =
         if value.now != undefined
           setValue.call(@, value.now)
 
-        value.later.then ((x) ->
-          currentValue = x
-          @setDirty(id)
-        ).bind @
+        value.later.then setValue.bind @
 
       else
         if value != currentValue
